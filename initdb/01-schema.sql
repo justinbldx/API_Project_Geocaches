@@ -72,6 +72,7 @@ create table mydatabase.visite
     date_heure     datetime     not null,
     commentaire    varchar(255) null,
     photo_url      varchar(255) null,
+    cache_trouve tinyint(1) default 0 not null,
     primary key (id_utilisateur, id_cache, date_heure),
     constraint visite_cache_id_fk
         foreign key (id_cache) references mydatabase.cache (id),
