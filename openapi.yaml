@@ -1,0 +1,995 @@
+openapi: 3.0.3
+info:
+  title: API Géocaches
+  description: API de gestion d'un système de géocaching avec utilisateurs, réseaux, caches et visites.
+  version: 1.0.0
+
+servers:
+  - url: https://localhost:3000/
+    description: Serveur de développement
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+          enum: [user, admin]
+        username:
+          type: string
+
+    UserDetail:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          properties:
+            role:
+              type: string
+              enum: [user, admin]
+            networks:
+              type: array
+              items:
+                $ref: '#/components/schemas/NetworkSummary'
+    
+    UserDetailWithNetworksDetail:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          properties:
+            role:
+              type: string
+              enum: [user, admin]
+            networks:
+              type: array
+              items:
+                type: object
+                properties:
+                  affectationDate:
+                    type: string
+                    format: date-time
+                  id:
+                    type: integer
+                  name:
+                    type: string
+
+    NetworkSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    NetworkDetail:
+      allOf:
+        - $ref: '#/components/schemas/NetworkSummary'
+        - type: object
+          properties:
+            owner:
+              $ref: '#/components/schemas/UserSummary'
+
+    CacheType:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Traditional
+        id:
+          type: integer
+
+    CacheState:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Actif
+        id:
+          type: integer
+
+    CacheSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
+        type:
+          type: string
+          example: Traditionnel
+        state:
+          type: string
+          example: Actif
+        description:
+          type: string
+        descriptionLibre:
+          type: string
+        descriptionTechnique:
+          type: string
+
+    CacheDetail:
+      allOf:
+        - $ref: '#/components/schemas/CacheSummary'
+        - type: object
+          properties:
+            network:
+              nullable: true
+              $ref: '#/components/schemas/NetworkSummary'
+
+    Coordinates:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: float
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: float
+          minimum: -180
+          maximum: 180
+
+    VisitSummary:
+      type: object
+      properties:
+        cache:
+          $ref: '#/components/schemas/CacheSummary'
+        found:
+          type: boolean
+        visited_at:
+          type: string
+          format: date-time
+        comment:
+          type: string
+        photo_url:
+          type: string
+
+    VisitSummaryWithoutCache:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        found:
+          type: boolean
+        visited_at:
+          type: string
+          format: date-time
+        comment:
+          type: string
+        photo_url:
+          type: string
+
+    VisitDetail:
+      allOf:
+        - $ref: '#/components/schemas/VisitSummary'
+        - type: object
+          properties:
+            comment:
+              type: string
+              nullable: true
+
+    LoginRequest:
+      type: object
+      required: [password]
+      properties:
+        pseudo:
+          type: string
+        password:
+          type: string
+          minLength: 8
+
+    CreateUserRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        role:
+          type: string
+          enum: [user, admin]
+          default: user
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        password:
+          type: string
+          minLength: 8
+
+    CreateNetworkRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+
+    UpdateNetworkRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        owner_id:
+          type: integer
+
+    NetworkUserRequest:
+      type: object
+      required: [user_id]
+      properties:
+        user_id:
+          type: integer
+
+    CreateCacheRequest:
+      type: object
+      required: [description, network_id, latitude, longitude, type_id]
+      properties:
+        description:
+          type: string
+        description_technique:
+          type: string
+        description_libre:
+          type: string
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        type_id:
+          type: integer
+        state_id:
+          type: integer
+          description: Défaut — état actif
+        network_id:
+          type: integer
+
+    UpdateCacheRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        descriptionTechnique:
+          type: string
+        descriptionLibre:
+          type: string
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        type_id:
+          type: integer
+        state_id:
+          type: integer
+
+    CreateVisitRequest:
+      type: object
+      required: [cache_id, found]
+      properties:
+        cache_id:
+          type: integer
+        found:
+          type: boolean
+        comment:
+          type: string
+        visited_at:
+          type: string
+          format: date-time
+          description: Défaut — maintenant
+        photo_url:
+          type: string
+
+    DeleteResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        status:
+          type: integer
+
+  parameters:
+    UserIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    NetworkIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    CacheIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    GroupeIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    VisitIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    AffectationIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  responses:
+    Unauthorized:
+      description: Token manquant ou invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Droits insuffisants
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Données invalides
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+paths:
+  /auth/login:
+    post:
+      tags: [Authentification]
+      summary: Connexion
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/UserDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users:
+    get:
+      tags: [Utilisateurs]
+      summary: Lister les utilisateurs
+      responses:
+        '200':
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Utilisateurs]
+      summary: Créer un utilisateur
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Utilisateur créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummary'
+        '409':
+          description: Pseudo déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{id}:
+    get:
+      tags: [Utilisateurs]
+      summary: Détail d'un utilisateur
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '200':
+          description: Détail utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetailWithNetworksDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Utilisateurs]
+      summary: Modifier un utilisateur
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Utilisateur mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Utilisateurs]
+      summary: Supprimer un utilisateur
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '200':
+          description: Utilisateur supprimé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{id}/visits:
+    get:
+      tags: [Utilisateurs]
+      summary: Visites d'un utilisateur
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+        - name: found
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Visites de l'utilisateur
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      visits:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VisitDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /networks:
+    get:
+      tags: [Réseaux]
+      summary: Lister tous les réseaux
+      responses:
+        '200':
+          description: Liste des réseaux
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      networks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/NetworkDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Réseaux]
+      summary: Créer un réseau
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNetworkRequest'
+      responses:
+        '201':
+          description: Réseau créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /networks/{id}:
+    delete:
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      tags: [Réseaux]
+      summary: Supprimer un réseau
+      responses:
+        '200':
+          description: Réseau supprimé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    get:
+      tags: [Réseaux]
+      summary: Récupérer un réseau à partir de son identifiant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Propriétaire du réseau
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Réseaux]
+      summary: Modifier un réseau
+      parameters:
+        - $ref: '#/components/parameters/NetworkIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNetworkRequest'
+      responses:
+        '200':
+          description: Réseau mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /networks/{id}/members:
+    get:
+      tags: [Réseaux]
+      summary: Membres d'un réseau
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Membres du réseau
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      members:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Réseaux]
+      summary: Affecter un utilisateur à un réseau
+      parameters:
+        - $ref: '#/components/parameters/NetworkIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkUserRequest'
+      responses:
+        '200':
+          description: Utilisateur ajouté au réseau
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  network_id:
+                    type: integer
+                  user_id:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Utilisateur déjà membre du réseau
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /networks/{network_id}/members/{member_id}:
+    delete:
+      tags: [Réseaux]
+      summary: Retirer un utilisateur d'un réseau
+      parameters:
+        - name: network_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: member_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Utilisateur retiré du réseau
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  network_id:
+                    type: integer
+                  user_id:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+
+  /networks/{id}/caches:
+    get:
+      tags: [Réseaux]
+      summary: Caches d'un réseau
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: type_id
+          in: query
+          schema:
+            type: integer
+        - name: state_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Caches du réseau
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      caches:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CacheSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /caches:
+    post:
+      tags: [Caches]
+      summary: Créer un cache
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCacheRequest'
+      responses:
+        '201':
+          description: Cache créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /caches/{id}:
+    get:
+      tags: [Caches]
+      summary: Récupérer les infos d'un cache
+      parameters:
+        - $ref: '#/components/parameters/CacheIdParam'
+      responses:
+        '200':
+          description: Détail du cache
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Caches]
+      summary: Modifier un cache
+      parameters:
+        - $ref: '#/components/parameters/CacheIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCacheRequest'
+      responses:
+        '200':
+          description: Cache mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Caches]
+      summary: Supprimer un cache
+      parameters:
+        - $ref: '#/components/parameters/CacheIdParam'
+      responses:
+        '200':
+          description: Cache supprimé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /caches/{id}/visits:
+    get:
+      tags: [Caches]
+      summary: Lister les visites
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Liste des visites
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      visits:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VisitSummaryWithoutCache'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /visits:
+    post:
+      tags: [Visites]
+      summary: Créer une visite
+      description:
+        L’utilisateur doit être rattaché au même réseau que celui auquel le cache est associé.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVisitRequest'
+      responses:
+        '201':
+          description: Visite enregistrée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /visits/{id}:
+    get:
+      tags: [Visites]
+      summary: Détail d'une visite
+      description: 
+        Pour consulter la visite, le membre doit en être l’auteur ou disposer des droits d’administrateur.
+      parameters:
+        - $ref: '#/components/parameters/VisitIdParam'
+      responses:
+        '200':
+          description: Détail de la visite
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /caches-types:
+    get:
+      tags: [Référentiels]
+      summary: Lister les types de cache
+      security: []
+      responses:
+        '200':
+          description: Types de cache disponibles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  types:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CacheType'
+
+  /caches-states:
+    get:
+      tags: [Référentiels]
+      summary: Lister les états de cache
+      security: []
+      responses:
+        '200':
+          description: États de cache disponibles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  states:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CacheState'
+
+tags:
+  - name: Authentification
+    description: Connexion et déconnexion
+  - name: Utilisateurs
+    description: Gestion des comptes utilisateurs
+  - name: Réseaux
+    description: Gestion des réseaux de géocaches
+  - name: Caches
+    description: Gestion des géocaches
+  - name: Visites
+    description: Enregistrement et consultation des visites
+  - name: Référentiels
+    description: Données de référence — types et états
