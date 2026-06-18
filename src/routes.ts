@@ -5,10 +5,10 @@ import { asyncHandler } from './middlewares/asyncHandler';
 const router = Router();
 const userController = new UserController();
 
-router.get('/', asyncHandler(userController.getAll));
-router.get('/:id', asyncHandler(userController.getById));
-router.post('/', asyncHandler(userController.create));
-router.put('/:id', asyncHandler(userController.update));
-router.delete('/:id', asyncHandler(userController.delete));
+router.get('/users', asyncHandler(userController.getAll));
+router.get('/users/:id', asyncHandler(userController.getById));
+router.post('/users', asyncHandler(userController.create));
+router.put('/users/:id', asyncHandler(userController.update));
+router.delete('/users/:id', asyncHandler(userController.delete));
 
 export default router;

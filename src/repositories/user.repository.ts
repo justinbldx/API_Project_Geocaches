@@ -7,34 +7,40 @@ import { CreateUserDTO, UpdateUserDTO, User } from '../models/user.model';
  */
 export class UserRepository {
     async findAll(): Promise<User[]> {
-        const result = await pool.query<User>(
-            'SELECT id, name, email, created_at FROM users ORDER BY id ASC'
-        ) as unknown as { rows: User[] };
-        return result.rows;
+        const rows = await pool.query(
+            'SELECT id, pseudo AS name, "" AS email, NULL AS created_at FROM utilisateur ORDER BY id ASC'
+        ) as unknown as User[];
+        return rows;
     }
 
     async findById(id: number): Promise<User | null> {
-        const result = await pool.query<User>(
-            'SELECT id, name, email, created_at FROM users WHERE id = $1',
+        const rows = await pool.query(
+            'SELECT id, pseudo AS name, "" AS email, NULL AS created_at FROM utilisateur WHERE id = ?',
             [id]
-        ) as unknown as { rows: User[] };
-        return result.rows[0] ?? null;
+        ) as unknown as User[];
+        return rows[0] ?? null;
     }
 
     async findByEmail(email: string): Promise<User | null> {
-        const result = await pool.query<User>(
-            'SELECT id, name, email, created_at FROM users WHERE email = $1',
+        const rows = await pool.query(
+            'SELECT id, pseudo AS name, email, created_at FROM utilisateur WHERE email = ?',
             [email]
-        ) as unknown as { rows: User[] };
-        return result.rows[0] ?? null;
+        ) as unknown as User[];
+        return rows[0] ?? null;
     }
 
     async create(data: CreateUserDTO): Promise<User> {
-        const result = await pool.query<User>(
-            'INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id, name, email, created_at',
+        await pool.query(
+            'INSERT INTO utilisateur (pseudo, mot_de_passe, admin) VALUES (?, ?, 0)',
             [data.name, data.email]
-        ) as unknown as { rows: User[] };
-        return result.rows[0];
+        );
+
+        const inserted = await this.findByEmail(data.email);
+        if (!inserted) {
+            throw new Error("Impossible d'obtenir l'utilisateur créé");
+        }
+
+        return inserted;
     }
 
     async update(id: number, data: UpdateUserDTO): Promise<User | null> {
