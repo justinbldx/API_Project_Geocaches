@@ -17,6 +17,19 @@ function parseCoordinates(pointText: string | null): { latitude: number; longitu
     };
 }
 
+function normalizeInt(value: unknown): number {
+    if (typeof value === 'number') {
+        return value;
+    }
+    if (typeof value === 'bigint') {
+        return Number(value);
+    }
+    if (typeof value === 'string' && /^\d+$/.test(value)) {
+        return Number(value);
+    }
+    throw new Error(`Valeur entière inattendue : ${String(value)}`);
+}
+
 export class CacheRepository {
     async findById(id: number): Promise<CacheDetail | null> {
         const sql = `
@@ -44,7 +57,7 @@ export class CacheRepository {
         }
 
         return {
-            id: row.id,
+            id: normalizeInt(row.id),
             coordinates: parseCoordinates(row.coordonnees),
             type: row.type_name,
             state: row.state_name,
@@ -52,7 +65,7 @@ export class CacheRepository {
             descriptionTechnique: row.description_technique,
             descriptionLibre: row.description_libre,
             network: {
-                id: row.network_id,
+                id: normalizeInt(row.network_id),
                 name: row.network_name,
             },
         };
@@ -89,7 +102,7 @@ export class CacheRepository {
 
         const rows = await pool.query<any[]>(sql, values);
         return rows.map(row => ({
-            id: row.id,
+            id: normalizeInt(row.id),
             coordinates: parseCoordinates(row.coordonnees),
             type: row.type_name,
             state: row.state_name,
@@ -152,7 +165,7 @@ export class CacheRepository {
 
         const row = rows[0];
         return {
-            id: row.id,
+            id: normalizeInt(row.id),
             coordinates: parseCoordinates(row.coordonnees),
             type: row.type_name,
             state: row.state_name,
@@ -160,7 +173,7 @@ export class CacheRepository {
             descriptionTechnique: row.description_technique,
             descriptionLibre: row.description_libre,
             network: {
-                id: row.network_id,
+                id: normalizeInt(row.network_id),
                 name: row.network_name,
             },
         };
@@ -224,7 +237,7 @@ export class CacheRepository {
         const rows = await pool.query<any[]>(sql, [cacheId]);
         return rows.map(row => ({
             user: {
-                id: row.user_id,
+                id: normalizeInt(row.user_id),
                 username: row.username,
                 role: row.is_admin ? 'admin' : 'user',
             },
@@ -238,5 +251,20 @@ export class CacheRepository {
     async delete(id: number): Promise<boolean> {
         const result = await pool.query<any>('DELETE FROM cache WHERE id = ?', [id]);
         return result.affectedRows > 0;
+    }
+
+    async checkNetworkExists(networkId: number): Promise<boolean> {
+        const rows = await pool.query<any[]>('SELECT 1 FROM reseau WHERE id = ?', [networkId]);
+        return rows.length > 0;
+    }
+
+    async checkTypeExists(typeId: number): Promise<boolean> {
+        const rows = await pool.query<any[]>('SELECT 1 FROM type_cache WHERE id = ?', [typeId]);
+        return rows.length > 0;
+    }
+
+    async checkStateExists(stateId: number): Promise<boolean> {
+        const rows = await pool.query<any[]>('SELECT 1 FROM etat_cache WHERE id = ?', [stateId]);
+        return rows.length > 0;
     }
 }

@@ -14,6 +14,7 @@ router.put('/users/:id', asyncHandler(userController.update));
 router.delete('/users/:id', asyncHandler(userController.delete));
 
 router.get('/networks/:id/caches', asyncHandler(cacheController.getByNetwork));
+
 router.post('/caches', asyncHandler(cacheController.create));
 router.get('/caches/:id', asyncHandler(cacheController.getById));
 router.put('/caches/:id', asyncHandler(cacheController.update));

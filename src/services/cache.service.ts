@@ -26,12 +26,35 @@ export class CacheService {
             throw new BadRequestError('Coordonnées invalides');
         }
 
+        // Validate foreign key references
+        if (!await this.cacheRepository.checkNetworkExists(data.network_id)) {
+            throw new BadRequestError(`Le réseau ${data.network_id} n'existe pas`);
+        }
+
+        if (!await this.cacheRepository.checkTypeExists(data.type_id)) {
+            throw new BadRequestError(`Le type de cache ${data.type_id} n'existe pas`);
+        }
+
+        const stateId = data.state_id ?? 1;
+        if (!await this.cacheRepository.checkStateExists(stateId)) {
+            throw new BadRequestError(`L'état de cache ${stateId} n'existe pas`);
+        }
+
         return this.cacheRepository.create(data);
     }
 
     async updateCache(id: number, data: UpdateCacheDTO): Promise<CacheDetail> {
         if ((data.latitude !== undefined && data.longitude === undefined) || (data.longitude !== undefined && data.latitude === undefined)) {
             throw new BadRequestError('Les deux coordonnées latitude et longitude doivent être fournies ensemble');
+        }
+
+        // Validate foreign key references if they're being updated
+        if (data.type_id !== undefined && !await this.cacheRepository.checkTypeExists(data.type_id)) {
+            throw new BadRequestError(`Le type de cache ${data.type_id} n'existe pas`);
+        }
+
+        if (data.state_id !== undefined && !await this.cacheRepository.checkStateExists(data.state_id)) {
+            throw new BadRequestError(`L'état de cache ${data.state_id} n'existe pas`);
         }
 
         await this.getCacheById(id);

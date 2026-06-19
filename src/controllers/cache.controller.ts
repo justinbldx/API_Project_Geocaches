@@ -41,7 +41,7 @@ export class CacheController {
     delete = async (req: Request, res: Response): Promise<void> => {
         const id = parseId(req.params.id as string);
         await this.cacheService.deleteCache(id);
-        res.status(204).send();
+        res.status(200).json({ status: 'success', message: `Cache ${id} supprimé` });
     };
 
     getVisitsByCache = async (req: Request, res: Response): Promise<void> => {
