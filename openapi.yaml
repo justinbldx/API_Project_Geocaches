@@ -219,10 +219,12 @@ components:
 
     CreateNetworkRequest:
       type: object
-      required: [name]
+      required: [name, owner_id]
       properties:
         name:
           type: string
+        owner_id:
+          type: integer
 
     UpdateNetworkRequest:
       type: object
