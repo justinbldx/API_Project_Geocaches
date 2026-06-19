@@ -15,7 +15,6 @@
         "resolveJsonModule": true,
         "noImplicitAny": false,
         "sourceMap": true,
-        "incremental": true,
         "types": [
             "node"
         ]

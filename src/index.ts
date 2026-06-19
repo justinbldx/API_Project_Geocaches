@@ -8,6 +8,7 @@ async function bootstrap(): Promise<void> {
         const app = createApp();
         app.listen(process.env.PORT, () => {
             console.log(`🚀 Serveur démarré sur http://localhost:${process.env.PORT}`);
+            console.log(`📄 Documentation Swagger disponible sur http://localhost:${process.env.PORT}/api-docs`);
         });
     } catch (error) {
         console.error('❌ Échec du démarrage du serveur :', error);

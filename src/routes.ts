@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { UserController } from './controllers/user.controller';
-import { asyncHandler } from './middlewares/asyncHandler';
+import { CacheController } from './controllers/cache.controller';
 import { NetworkController } from './controllers/network.controller';
+import { asyncHandler } from './middlewares/asyncHandler';
 
 const router = Router();
-const userController = new UserController();
+const cacheController = new CacheController();
 const networkController = new NetworkController();
 
 // router.get('/', asyncHandler(userController.getAll));
@@ -12,6 +12,13 @@ const networkController = new NetworkController();
 // router.post('/', asyncHandler(userController.create));
 // router.put('/:id', asyncHandler(userController.update));
 // router.delete('/:id', asyncHandler(userController.delete));
+
+// Caches routes
+router.post('/caches', asyncHandler(cacheController.create));
+router.get('/caches/:id', asyncHandler(cacheController.getById));
+router.put('/caches/:id', asyncHandler(cacheController.update));
+router.delete('/caches/:id', asyncHandler(cacheController.delete));
+router.get('/caches/:id/visits', asyncHandler(cacheController.getVisitsByCache));
 
 // Network routes
 router.get('/networks', asyncHandler(networkController.getAll));
