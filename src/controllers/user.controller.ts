@@ -46,15 +46,14 @@ export class UserController {
         // Le "!" indique à TS qu'on est sûr qu'il existe (garanti par le middleware de route)
         const currentUser = req.user!;
 
-        const user = await this.userService.updateUser(id, currentUser, req.body);
+        const user = await this.userService.updateUser(id, req.body);
         res.status(200).json(user);
     };
 
     delete = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
         const id = parseId(req.params.id as string);
-        const currentUser = req.user!;
 
-        await this.userService.deleteUser(id, currentUser);
+        await this.userService.deleteUser(id);
         // Conforme à l'OpenAPI : renvoie un code 200 avec un message de confirmation
         res.status(200).json({ message: 'Utilisateur supprimé' });
     };

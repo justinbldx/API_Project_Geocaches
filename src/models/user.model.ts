@@ -10,9 +10,9 @@ export interface User {
 
 // Reçu lors de la création (POST /users)
 export interface CreateUserDTO {
-    username: string;  // Corrigé (name -> username)
-    password: string;  // Minimum 8 caractères
-    role?: UserRole;   // Optionnel car 'user' par défaut
+    username: string;
+    password: string; 
+    role?: UserRole;
 }
 
 // Reçu lors de la modification (PUT /users/{id})

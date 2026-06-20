@@ -8,24 +8,39 @@ import { CreateUserDTO, UpdateUserDTO, User, UserDetailDTO } from '../models/use
 export class UserRepository {
 
     /**
+     * Permet de convertir une ligne SQL en objet User (DTO)
+     * @param row La ligne à traiter
+     */
+    public convertUser(row: any): User {
+        return {
+            id: row.id?.toString(), // Nécesaire car l'ID est un bigint
+            username: row.pseudo,
+            password: row.mot_de_passe,
+            role: row.role === 1 ? 'admin' : 'user',
+        }
+    }
+
+    /**
      * Récupère tous les utilisateurs (Correspond à UserSummary dans l'OpenAPI)
      */
     async findAll(): Promise<User[]> {
-        const result = await pool.query<User>(
-            'SELECT id, username, role FROM users ORDER BY id ASC'
-        ) as unknown as { rows: User[] };
-        return result.rows;
+        const result = await pool.query<any[]>(
+            'SELECT id, pseudo, admin FROM utilisateur ORDER BY id ASC'
+        )
+
+        return result.map(this.convertUser);
     }
 
     /**
      * Récupère un utilisateur par son ID (champs de base)
      */
     async findById(id: number): Promise<User | null> {
-        const result = await pool.query<User>(
-            'SELECT id, username, role FROM users WHERE id = $1',
+        const result = await pool.query<any[]>(
+            'SELECT id, pseudo, admin FROM utilisateur WHERE id = ?',
             [id]
-        ) as unknown as { rows: User[] };
-        return result.rows[0] ?? null;
+        );
+
+        return result[0] ? this.convertUser(result[0]) : null;
     }
 
     /**
@@ -39,17 +54,19 @@ export class UserRepository {
 
         // 2. On récupère ses réseaux associés via la table de jointure (user_networks)
         const networksResult = await pool.query(`
-            SELECT n.id, n.name, un.affectation_date as "affectationDate"
-            FROM networks n
-            JOIN user_networks un ON n.id = un.network_id
-            WHERE un.user_id = $1
-        `, [id]) as unknown as { rows: any[] };
+            SELECT n.id, n.nom_reseau, un.date_affectation as "affectationDate"
+            FROM reseau n
+            JOIN affectation un ON n.id = un.id_reseau
+            WHERE un.id_utilisateur = ?
+        `, [id]);
 
         return {
-            id: user.id,
-            username: user.username,
-            role: user.role,
-            networks: networksResult.rows
+            ...user,
+            networks: networksResult.map((row: any) => ({
+                id: row.id.toString(), // Nécessaire car l'ID est un bigint
+                name: row.nom_reseau,
+                affectationDate: row.affectationDate,
+            })),
         };
     }
 
@@ -58,7 +75,7 @@ export class UserRepository {
      */
     async findByUsername(username: string): Promise<User | null> {
         const result = await pool.query<User>(
-            'SELECT id, username, password, role FROM users WHERE username = $1',
+            'SELECT id, pseudo, mot_de_passe, admin FROM utilisateur WHERE pseudo = ?',
             [username]
         ) as unknown as { rows: User[] };
         return result.rows[0] ?? null;
@@ -69,8 +86,8 @@ export class UserRepository {
      */
     async create(data: CreateUserDTO): Promise<User> {
         const result = await pool.query<User>(
-            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role',
-            [data.username, data.password, data.role ?? 'user']
+            'INSERT INTO utilisateur (pseudo, mot_de_passe, admin) VALUES (?, ?, ?) RETURNING id, pseudo, admin',
+            [data.username, data.password, data.role === 'admin']
         ) as unknown as { rows: User[] };
         return result.rows[0];
     }
@@ -79,35 +96,41 @@ export class UserRepository {
      * Met à jour dynamiquement un utilisateur selon les champs fournis
      */
     async update(id: number, data: UpdateUserDTO): Promise<User | null> {
+        const current = await this.findById(id);
+        if (!current) return null;
+
         const fields: string[] = [];
         const values: unknown[] = [];
-        let index = 1;
 
         if (data.username !== undefined) {
-            fields.push(`username = $${index++}`);
+            fields.push(`pseudo = ?`);
             values.push(data.username);
         }
         if (data.password !== undefined) {
-            fields.push(`password = $${index++}`);
+            fields.push(`mot_de_passe = ?`);
             values.push(data.password);
         }
         if (data.role !== undefined) {
-            fields.push(`role = $${index++}`);
-            values.push(data.role);
+            fields.push(`admin = ?`);
+            values.push(data.role === "admin");
         }
 
-        // Si aucun champ n'est passé dans le body, on renvoie simplement l'état actuel
         if (fields.length === 0) {
-            return this.findById(id);
+            return current;
         }
 
-        values.push(id); // L'ID pour la clause WHERE
-
-        const result = await pool.query<User>(
-            `UPDATE users SET ${fields.join(', ')} WHERE id = $${index} RETURNING id, username, role`,
+        values.push(id);
+        await pool.query(
+            `UPDATE utilisateur SET ${fields.join(', ')} WHERE id = ?`,
             values
-        ) as unknown as { rows: User[] };
-        return result.rows[0] ?? null;
+        );
+
+        // On reconstruit l'objet à partir de ce qu'on sait déjà avoir écrit
+        return {
+            id: current.id,
+            username: data.username ?? current.username,
+            role: data.role !== undefined ? data.role : current.role,
+        };
     }
 
     /**
@@ -115,9 +138,10 @@ export class UserRepository {
      */
     async delete(id: number): Promise<boolean> {
         const result = await pool.query(
-            'DELETE FROM users WHERE id = $1',
+            'DELETE FROM utilisateur WHERE id = ?',
             [id]
-        ) as unknown as { rowCount?: number };
-        return (result.rowCount ?? 0) > 0;
+        ) as { affectedRows: number };
+
+        return result.affectedRows > 0;
     }
 }

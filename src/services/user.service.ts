@@ -62,17 +62,7 @@ export class UserService {
    * Logique de modification de compte (PUT /users/{id})
    * Reçoit l'ID de la cible ainsi que les infos de l'utilisateur qui fait la requête (currentUser)
    */
-  async updateUser(id: number, currentUser: { id: number; role: string }, data: UpdateUserDTO): Promise<User> {
-    // 1. Règle de sécurité : Seul un admin ou le propriétaire du compte peut modifier
-    if (currentUser.role !== 'admin' && currentUser.id !== id) {
-      throw new ForbiddenError("Vous n'êtes pas autorisé à modifier ce compte");
-    }
-
-    // 2. Empêcher un utilisateur standard de tricher en passant son rôle à 'admin'
-    if (data.role && data.role === 'admin' && currentUser.role !== 'admin') {
-      throw new ForbiddenError("Vous ne pouvez pas vous attribuer le rôle administrateur");
-    }
-
+  async updateUser(id: number, data: UpdateUserDTO): Promise<User> {
     // 3. Vérifier que l'utilisateur à modifier existe bel et bien
     const user = await this.userRepository.findById(id);
     if (!user) {
@@ -82,10 +72,11 @@ export class UserService {
     const updatePayload: UpdateUserDTO = { ...data };
 
     // 4. Si un nouveau mot de passe est fourni, on le valide et on le hache
-    if (data.password) {
-      if (data.password.length < 8) {
+    if (data?.password) {
+      if (data?.password?.length < 8) {
         throw new BadRequestError("Le nouveau mot de passe doit contenir au moins 8 caractères");
       }
+      
       updatePayload.password = await bcrypt.hash(data.password, 10);
     }
 
@@ -99,13 +90,8 @@ export class UserService {
   /**
    * Logique de suppression de compte (DELETE /users/{id})
    */
-  async deleteUser(id: number, currentUser: { id: number; role: string }): Promise<void> {
-    // 1. Règle de sécurité : Seul un admin ou le propriétaire du compte peut le supprimer
-    if (currentUser.role !== 'admin' && currentUser.id !== id) {
-      throw new ForbiddenError("Vous n'êtes pas autorisé à supprimer ce compte");
-    }
-
-    // 2. Vérifier l'existence
+  async deleteUser(id: number): Promise<void> {
+    // Vérifier l'existence de l'utilisateur en base de données
     const user = await this.userRepository.findById(id);
     if (!user) {
       throw new NotFoundError(`Utilisateur ${id} introuvable`);
