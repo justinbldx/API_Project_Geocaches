@@ -29,6 +29,16 @@ export class UserService {
     return userDetail;
   }
 
+  async getUsersVisits(userId: number, found?: boolean): Promise<any[]> {
+    // Vérifier que l'utilisateur existe
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundError(`Utilisateur ${userId} introuvable`);
+    }
+
+    return this.userRepository.getUsersVisits(userId, found);
+  }
+
   /**
    * Permet de récupérer un utilisateur avec son nom d'utilisateur (pseudo)
    */

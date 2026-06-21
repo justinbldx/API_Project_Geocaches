@@ -32,6 +32,7 @@ router.post('/users', asyncHandler(userController.create));
 router.get('/users/:id', asyncHandler(userController.getById));
 router.put('/users/:id', asyncHandler(userController.update));
 router.delete('/users/:id', asyncHandler(userController.delete));
+router.get('/users/:id/visits', asyncHandler(userController.getUsersVisits));
 
 // Caches routes
 router.post('/caches', asyncHandler(cacheController.create));

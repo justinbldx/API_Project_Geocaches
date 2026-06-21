@@ -39,6 +39,12 @@ export class UserController {
         res.status(201).json(user);
     };
 
+    getUsersVisits = async (req: Request, res: Response): Promise<void> => {
+        const id = parseId(req.params.id as string);
+        const visits = await this.userService.getUsersVisits(id, req.query.found === 'true' ? true : req.query.found === 'false' ? false : undefined);
+        res.status(200).json({ visits });
+    };
+
     update = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
         const id = parseId(req.params.id as string);
 

@@ -101,6 +101,76 @@ export class UserRepository {
     }
 
     /**
+     * Permet de récupérer les visites d'un utilisateur, avec la possibilité de filtrer par "trouvé" ou "non trouvé"
+     * @param userId ID de l'utilisateur pour lequel on veut récupérer les visites
+     * @param found Si true, ne récupère que les caches trouvés, si false, ne récupère que les caches non trouvés, si undefined, récupère tous les caches
+     * @returns 
+     */
+    async getUsersVisits(userId: number, found?: boolean): Promise<any[]> {
+        let query = `
+            SELECT
+                v.date_heure,
+                v.commentaire,
+                v.photo_url,
+                v.cache_trouve,
+
+                c.id AS cache_id,
+                c.description,
+                c.description_libre,
+                c.description_technique,
+                c.coordonnees,
+
+                tc.libelle AS type_libelle,
+                ec.libelle AS state_libelle
+
+            FROM visite v
+            JOIN cache c ON c.id = v.id_cache
+            JOIN type_cache tc ON tc.id = c.id_type
+            JOIN etat_cache ec ON ec.id = c.id_etat
+            WHERE v.id_utilisateur = ?
+        `;
+
+        const params: any[] = [userId];
+
+        if (found !== undefined) {
+            query += ` AND v.cache_trouve = ?`;
+            params.push(found);
+        }
+
+        query += ` ORDER BY v.date_heure DESC`;
+
+        const result = await pool.query<any[]>(query, params);
+
+        return result.map(row => ({
+            cache: {
+                id: row.cache_id,
+                coordinates: this.convertPoint(row.coordonnees),
+                type: row.type_libelle,
+                state: row.state_libelle,
+                description: row.description,
+                descriptionLibre: row.description_libre,
+                descriptionTechnique: row.description_technique
+            },
+            found: !!row.cache_trouve,
+            visited_at: row.date_heure,
+            comment: row.commentaire,
+            photo_url: row.photo_url
+        }));
+    }
+
+    /**
+     * Permet de convertir un point géographique stocké en base (coordonnees) en objet { latitude, longitude }
+     * @param point Point géographique stocké en base (coordonnees)
+     * @returns 
+     */
+    private convertPoint(point: any): { latitude: number; longitude: number } {
+        return {
+            latitude: point.coordinates[1],
+            longitude: point.coordinates[0]
+        };
+    }
+
+    /**
      * Crée un nouvel utilisateur en base de données
      */
     async create(data: CreateUserDTO): Promise<User> {
