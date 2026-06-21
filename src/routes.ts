@@ -7,6 +7,11 @@ const router = Router();
 const cacheController = new CacheController();
 const networkController = new NetworkController();
 
+// Lister les utilisateurs
+router.get('/users', asyncHandler(userController.getAll));
+router.get('/users/:id', asyncHandler(userController.getById));
+router.put('/users/:id', asyncHandler(userController.update));
+router.delete('/users/:id', asyncHandler(userController.delete));
 // router.get('/', asyncHandler(userController.getAll));
 // router.get('/:id', asyncHandler(userController.getById));
 // router.post('/', asyncHandler(userController.create));
