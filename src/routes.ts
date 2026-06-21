@@ -5,6 +5,7 @@ import { ReferentielController } from './controllers/referentiel.controller';
 import { CacheController } from './controllers/cache.controller';
 import { NetworkController } from './controllers/network.controller';
 import { asyncHandler } from './middlewares/asyncHandler';
+import { AuthController } from './controllers/auth.controller';
 
 const router = Router();
 const cacheController = new CacheController();
@@ -12,17 +13,22 @@ const networkController = new NetworkController();
 const userController = new UserController();
 const visitController = new VisitController();
 const referentielController = new ReferentielController();
+const authController = new AuthController();
 
-//visits routes
+// Route pour login
+router.post("/login", asyncHandler(authController.login));
+
+// Routes de visites
 router.post("/visits", asyncHandler(visitController.create));
 router.get("/visits/:id", asyncHandler(visitController.getById));
 
-//referentiel routes
+// Routes de référentiel
 router.get("/caches-types", asyncHandler(referentielController.getAllCachesTypes));
 router.get("/caches-states", asyncHandler(referentielController.getAllCachesStates));
 
 // Routes utilisateurs
 router.get('/users', asyncHandler(userController.getAll));
+router.post('/users', asyncHandler(userController.create));
 router.get('/users/:id', asyncHandler(userController.getById));
 router.put('/users/:id', asyncHandler(userController.update));
 router.delete('/users/:id', asyncHandler(userController.delete));

@@ -34,7 +34,7 @@ export class UserController {
     };
 
     create = async (req: Request, res: Response): Promise<void> => {
-        const user = await this.userService.createUser(req.body);
+        const user = await this.userService.register(req.body);
         // Conforme à l'OpenAPI : renvoie directement le UserSummary de l'utilisateur créé
         res.status(201).json(user);
     };

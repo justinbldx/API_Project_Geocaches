@@ -16,7 +16,7 @@ export class UserRepository {
             id: row.id?.toString(), // Nécesaire car l'ID est un bigint
             username: row.pseudo,
             password: row.mot_de_passe,
-            role: row.role === 1 ? 'admin' : 'user',
+            role: row.admin === 1 ? 'admin' : 'user',
         }
     }
 
@@ -77,8 +77,27 @@ export class UserRepository {
         const result = await pool.query<User>(
             'SELECT id, pseudo, mot_de_passe, admin FROM utilisateur WHERE pseudo = ?',
             [username]
-        ) as unknown as { rows: User[] };
-        return result.rows[0] ?? null;
+        );
+
+        return result[0] ? this.convertUser(result[0]) : null;
+    }
+
+    async getUserNetworks(user: User): Promise<UserDetailDTO> {
+        const networksResult = await pool.query(`
+            SELECT n.id, n.nom_reseau, un.date_affectation as "affectationDate"
+            FROM reseau n
+            JOIN affectation un ON n.id = un.id_reseau
+            WHERE un.id_utilisateur = ?
+        `, [user.id]);
+
+        return {
+            ...user,
+            networks: networksResult.map((row: any) => ({
+                id: row.id.toString(), // Nécessaire car l'ID est un bigint
+                name: row.nom_reseau,
+                affectationDate: row.affectationDate,
+            })),
+        };
     }
 
     /**
@@ -88,8 +107,9 @@ export class UserRepository {
         const result = await pool.query<User>(
             'INSERT INTO utilisateur (pseudo, mot_de_passe, admin) VALUES (?, ?, ?) RETURNING id, pseudo, admin',
             [data.username, data.password, data.role === 'admin']
-        ) as unknown as { rows: User[] };
-        return result.rows[0];
+        );
+
+        return this.convertUser(result[0]);
     }
 
     /**

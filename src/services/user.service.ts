@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt'; // npm i bcrypt && npm i --save-dev @types/bcrypt
+import bcrypt from 'bcrypt';
 import { BadRequestError, ConflictError, NotFoundError, ForbiddenError } from '../errors/AppError'; // Ajout de ForbiddenError pour les 403
 import { CreateUserDTO, UpdateUserDTO, User, UserDetailDTO } from '../models/user.model';
 import { UserRepository } from '../repositories/user.repository';
@@ -30,26 +30,45 @@ export class UserService {
   }
 
   /**
+   * Permet de récupérer un utilisateur avec son nom d'utilisateur (pseudo)
+   */
+  async getByUsername(username: string): Promise<User | null> {
+    return this.userRepository.findByUsername(username);
+  }
+
+  /**
+   * Permet de récupérer les réseaux associés à un utilisateur
+   * @param user L'utilisateur pour lequel on veut récupérer les réseaux
+   * @returns L'objet UserDetailDTO contenant les informations de l'utilisateur et ses réseaux
+   */
+  async getUserNetworks(user: User): Promise<UserDetailDTO> {
+    return this.userRepository.getUserNetworks(user);
+  }
+
+  /**
    * Logique de création de compte (Register)
    */
-  async createUser(data: CreateUserDTO): Promise<User> {
-    // 1. Validation des champs obligatoires selon OpenAPI
-    if (!data.username || !data.password) {
+  async register(data: CreateUserDTO): Promise<User> {
+    // Validation des champs obligatoires 
+    if (
+        !data.username 
+        || !data.password
+      ) {  
       throw new BadRequestError("Le nom d'utilisateur (username) et le mot de passe sont obligatoires");
     }
 
-    // 2. Validation de la contrainte de taille du mot de passe (minLength: 8)
+    // Validation de la contrainte de taille du mot de passe (minLength: 8)
     if (data.password.length < 8) {
       throw new BadRequestError("Le mot de passe doit contenir au moins 8 caractères");
     }
 
-    // 3. Vérification de l'unicité du pseudo (Renvoie une 409 en cas de doublon)
+    // Vérification de l'unicité du pseudo (Renvoie une 409 en cas de doublon)
     const existing = await this.userRepository.findByUsername(data.username);
     if (existing) {
       throw new ConflictError(`Le pseudo "${data.username}" est déjà utilisé`);
     }
 
-    // 4. Hachage du mot de passe avant l'écriture en base de données
+    // Hachage du mot de passe avant l'écriture en base de données
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     return this.userRepository.create({
