@@ -11,6 +11,7 @@ export const pool = mariadb.createPool({
     password: process.env.MARIADB_PASSWORD,
     database: process.env.MARIADB_DATABASE,
     connectionLimit: 10,
+    bigIntAsNumber: true,
 });
 
 export async function connectDatabase(): Promise<void> {

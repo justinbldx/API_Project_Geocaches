@@ -1,13 +1,25 @@
 import { Router } from 'express';
+import { UserController } from './controllers/user.controller';
+import { VisitController } from './controllers/visit.controller';
+import { ReferentielController } from './controllers/referentiel.controller';
 import { CacheController } from './controllers/cache.controller';
 import { NetworkController } from './controllers/network.controller';
 import { asyncHandler } from './middlewares/asyncHandler';
-import { UserController } from './controllers/user.controller';
 
 const router = Router();
 const cacheController = new CacheController();
 const networkController = new NetworkController();
 const userController = new UserController();
+const visitController = new VisitController();
+const referentielController = new ReferentielController();
+
+//visits routes
+router.post("/visits", asyncHandler(visitController.create));
+router.get("/visits/:id", asyncHandler(visitController.getById));
+
+//referentiel routes
+router.get("/caches-types", asyncHandler(referentielController.getAllCachesTypes));
+router.get("/caches-states", asyncHandler(referentielController.getAllCachesStates));
 
 // Routes utilisateurs
 router.get('/users', asyncHandler(userController.getAll));
