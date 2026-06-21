@@ -1,9 +1,9 @@
 export interface CachesTypes {
     id: number;
-    libelle: string;
+    name: string;
 }
 
 export interface CachesStates {
     id: number;
-    libelle: string;
+    name: string;
 }

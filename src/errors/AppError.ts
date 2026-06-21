@@ -1,14 +1,20 @@
 /**
  * Erreur "métier" connue et volontaire (par opposition à un bug inattendu).
- * Le middleware d'erreurs s'appuie sur `statusCode` pour formater la réponse HTTP.
  */
 export class AppError extends Error {
   public readonly statusCode: number;
+  public readonly code: string;
   public readonly isOperational: boolean;
 
-  constructor(message: string, statusCode = 500, isOperational = true) {
+  constructor(
+    message: string,
+    statusCode = 500,
+    code = "INTERNAL_ERROR",
+    isOperational = true
+  ) {
     super(message);
     this.statusCode = statusCode;
+    this.code = code;
     this.isOperational = isOperational;
 
     Object.setPrototypeOf(this, AppError.prototype);
@@ -17,25 +23,25 @@ export class AppError extends Error {
 }
 
 export class BadRequestError extends AppError {
-  constructor(message = 'Requête invalide') {
-    super(message, 400);
+  constructor(message = "Requête invalide") {
+    super(message, 400, "BAD_REQUEST");
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(message = 'Ressource introuvable') {
-    super(message, 404);
+  constructor(message = "Ressource introuvable") {
+    super(message, 404, "NOT_FOUND");
   }
 }
 
 export class ConflictError extends AppError {
-  constructor(message = 'Conflit avec une ressource existante') {
-    super(message, 409);
+  constructor(message = "Conflit avec une ressource existante") {
+    super(message, 409, "CONFLICT");
   }
 }
-// 403 - Droits insuffisants (Celle qui te manque !)
+
 export class ForbiddenError extends AppError {
-  constructor(message: string = 'Droits insuffisants') {
-    super(message, 403);
+  constructor(message = "Droits insuffisants") {
+    super(message, 403, "FORBIDDEN");
   }
 }

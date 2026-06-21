@@ -12,21 +12,20 @@ export class AuthController {
         const { username, password } = req.body;
         const user = await this.userService.getByUsername(username);
 
-        console.log(user);
         if (!user) {
             res.status(401).json({ message: 'Identifiants invalides' });
             return;
         }
 
-        console.log(password, user.password);
         if (await bcrypt.compare(password, user.password!)) {
             const userWithNetworks = await this.userService.getUserNetworks(user);
             const { password: _password, ...userWithoutPassword } = userWithNetworks as typeof userWithNetworks & { password?: string };
 
             res.status(200).json({ 
                 token: jwt.sign({ 
-                    userId: user.id, 
-                    role: user.role 
+                    id: Number.parseInt(user.id.toString()),
+                    username: user.username, 
+                    role: user.role
                 }, process.env.JWT_SECRET!, { expiresIn: '24h' }),
                 user: userWithoutPassword
             });

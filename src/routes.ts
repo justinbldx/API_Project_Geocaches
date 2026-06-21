@@ -6,6 +6,13 @@ import { CacheController } from './controllers/cache.controller';
 import { NetworkController } from './controllers/network.controller';
 import { asyncHandler } from './middlewares/asyncHandler';
 import { AuthController } from './controllers/auth.controller';
+import { authenticate } from './middlewares/auth';
+import { validate } from './middlewares/validate';
+import { createVisitSchema } from './models/visit.schema';
+import { createUserSchema, updateUserSchema } from './models/user.schema';
+import { optionalAuth } from './middlewares/optionalAuth';
+import { addMemberSchema, createCacheSchema, updateCacheSchema } from './models/cache.schema';
+import { createNetworkSchema, updateNetworkSchema } from './models/network.schema';
 
 const router = Router();
 const cacheController = new CacheController();
@@ -19,40 +26,41 @@ const authController = new AuthController();
 router.post("/login", asyncHandler(authController.login));
 
 // Routes de visites
-router.post("/visits", asyncHandler(visitController.create));
-router.get("/visits/:id", asyncHandler(visitController.getById));
+router.post("/visits", authenticate, validate(createVisitSchema), asyncHandler(visitController.create));
+router.get("/visits/:id", authenticate, asyncHandler(visitController.getById));
+
+// Routes utilisateurs
+router.get('/users', authenticate, asyncHandler(userController.getAll));
+router.post('/users', optionalAuth, validate(createUserSchema), asyncHandler(userController.create));
+router.get('/users/:id', authenticate, asyncHandler(userController.getById));
+router.patch('/users/:id', authenticate, validate(updateUserSchema), asyncHandler(userController.update));
+router.delete('/users/:id', authenticate, asyncHandler(userController.delete));
+router.get('/users/:id/visits', authenticate, asyncHandler(userController.getUsersVisits));
+
+// Network routes
+router.get('/networks', authenticate, asyncHandler(networkController.getAll));
+router.get('/networks/:id', authenticate, asyncHandler(networkController.getById));
+router.post('/networks', authenticate, validate(createNetworkSchema), asyncHandler(networkController.create));
+router.patch('/networks/:id', authenticate, validate(updateNetworkSchema), asyncHandler(networkController.update));
+router.delete('/networks/:id', authenticate, asyncHandler(networkController.delete));
+router.get('/networks/:id/members', authenticate, asyncHandler(networkController.getMembers));
+router.post('/networks/:id/members', authenticate, validate(addMemberSchema), asyncHandler(networkController.addMember));
+router.delete(
+  '/networks/:network_id/members/:member_id',
+  authenticate,
+  asyncHandler(networkController.removeMember)
+);
+router.get('/networks/:id/caches', authenticate, asyncHandler(networkController.getCaches));
+
+// Caches routes
+router.post('/caches', authenticate, validate(createCacheSchema), asyncHandler(cacheController.create));
+router.get('/caches/:id', authenticate, asyncHandler(cacheController.getById));
+router.patch('/caches/:id', authenticate, validate(updateCacheSchema), asyncHandler(cacheController.update));
+router.delete('/caches/:id', authenticate, asyncHandler(cacheController.delete));
+router.get('/caches/:id/visits', authenticate, asyncHandler(cacheController.getVisitsByCache));
 
 // Routes de référentiel
 router.get("/caches-types", asyncHandler(referentielController.getAllCachesTypes));
 router.get("/caches-states", asyncHandler(referentielController.getAllCachesStates));
-
-// Routes utilisateurs
-router.get('/users', asyncHandler(userController.getAll));
-router.post('/users', asyncHandler(userController.create));
-router.get('/users/:id', asyncHandler(userController.getById));
-router.put('/users/:id', asyncHandler(userController.update));
-router.delete('/users/:id', asyncHandler(userController.delete));
-router.get('/users/:id/visits', asyncHandler(userController.getUsersVisits));
-
-// Caches routes
-router.post('/caches', asyncHandler(cacheController.create));
-router.get('/caches/:id', asyncHandler(cacheController.getById));
-router.put('/caches/:id', asyncHandler(cacheController.update));
-router.delete('/caches/:id', asyncHandler(cacheController.delete));
-router.get('/caches/:id/visits', asyncHandler(cacheController.getVisitsByCache));
-
-// Network routes
-router.get('/networks', asyncHandler(networkController.getAll));
-router.get('/networks/:id', asyncHandler(networkController.getById));
-router.post('/networks', asyncHandler(networkController.create));
-router.put('/networks/:id', asyncHandler(networkController.update));
-router.delete('/networks/:id', asyncHandler(networkController.delete));
-router.get('/networks/:id/members', asyncHandler(networkController.getMembers));
-router.post('/networks/:id/members', asyncHandler(networkController.addMember));
-router.delete(
-  '/networks/:network_id/members/:member_id',
-  asyncHandler(networkController.removeMember)
-);
-router.get('/networks/:id/caches', asyncHandler(networkController.getCaches));
 
 export default router;

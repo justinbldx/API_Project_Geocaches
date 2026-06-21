@@ -33,24 +33,3 @@ export interface VisitSummaryWithoutCache {
     comment: string | null;
     photo_url: string | null;
 }
-
-export interface CreateCacheDTO {
-    description: string;
-    description_technique?: string;
-    description_libre?: string | null;
-    latitude: number;
-    longitude: number;
-    type_id: number;
-    state_id?: number;
-    network_id: number;
-}
-
-export interface UpdateCacheDTO {
-    description?: string;
-    description_technique?: string;
-    description_libre?: string | null;
-    latitude?: number;
-    longitude?: number;
-    type_id?: number;
-    state_id?: number;
-}

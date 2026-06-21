@@ -1,5 +1,6 @@
 import { pool } from '../config/database';
-import { CreateUserDTO, UpdateUserDTO, User, UserDetailDTO } from '../models/user.model';
+import { User, UserDetailDTO } from '../models/user.model';
+import { CreateUserDTO, UpdateUserDTO } from '../models/user.schema';
 
 /**
  * Le repository est la SEULE couche autorisée à écrire des requêtes SQL.
@@ -109,6 +110,7 @@ export class UserRepository {
     async getUsersVisits(userId: number, found?: boolean): Promise<any[]> {
         let query = `
             SELECT
+                v.id as visite_id,
                 v.date_heure,
                 v.commentaire,
                 v.photo_url,
@@ -151,6 +153,7 @@ export class UserRepository {
                 descriptionLibre: row.description_libre,
                 descriptionTechnique: row.description_technique
             },
+            id: row.visite_id,
             found: !!row.cache_trouve,
             visited_at: row.date_heure,
             comment: row.commentaire,

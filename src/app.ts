@@ -17,10 +17,10 @@ export function createApp(): Application {
     app.use(helmet());
     app.use(cors());
     app.use(express.json());
+    
     app.use(morgan('dev'));
 
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
     app.use('/api', routes);
 
     // Toujours en dernier : 404 puis gestionnaire d'erreurs centralisé

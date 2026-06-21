@@ -1,7 +1,8 @@
 import bcrypt from 'bcrypt';
-import { BadRequestError, ConflictError, NotFoundError, ForbiddenError } from '../errors/AppError'; // Ajout de ForbiddenError pour les 403
-import { CreateUserDTO, UpdateUserDTO, User, UserDetailDTO } from '../models/user.model';
+import { BadRequestError, ConflictError, NotFoundError } from '../errors/AppError'; // Ajout de ForbiddenError pour les 403
+import { User, UserDetailDTO } from '../models/user.model';
 import { UserRepository } from '../repositories/user.repository';
+import { CreateUserDTO, UpdateUserDTO } from '../models/user.schema';
 
 /**
  * Le service contient la logique métier (validations, règles, orchestration).
@@ -59,19 +60,6 @@ export class UserService {
    * Logique de création de compte (Register)
    */
   async register(data: CreateUserDTO): Promise<User> {
-    // Validation des champs obligatoires 
-    if (
-        !data.username 
-        || !data.password
-      ) {  
-      throw new BadRequestError("Le nom d'utilisateur (username) et le mot de passe sont obligatoires");
-    }
-
-    // Validation de la contrainte de taille du mot de passe (minLength: 8)
-    if (data.password.length < 8) {
-      throw new BadRequestError("Le mot de passe doit contenir au moins 8 caractères");
-    }
-
     // Vérification de l'unicité du pseudo (Renvoie une 409 en cas de doublon)
     const existing = await this.userRepository.findByUsername(data.username);
     if (existing) {
@@ -92,7 +80,7 @@ export class UserService {
    * Reçoit l'ID de la cible ainsi que les infos de l'utilisateur qui fait la requête (currentUser)
    */
   async updateUser(id: number, data: UpdateUserDTO): Promise<User> {
-    // 3. Vérifier que l'utilisateur à modifier existe bel et bien
+    // Vérifier que l'utilisateur à modifier existe bel et bien
     const user = await this.userRepository.findById(id);
     if (!user) {
       throw new NotFoundError(`Utilisateur ${id} introuvable`);
@@ -100,12 +88,16 @@ export class UserService {
 
     const updatePayload: UpdateUserDTO = { ...data };
 
-    // 4. Si un nouveau mot de passe est fourni, on le valide et on le hache
-    if (data?.password) {
-      if (data?.password?.length < 8) {
-        throw new BadRequestError("Le nouveau mot de passe doit contenir au moins 8 caractères");
+    // Si le nom change, on vérifie qu'il n'est pas déjà utilisé par un autre utilisateur
+    if (data.username && data.username !== user.username) {
+      const existing = await this.userRepository.findByUsername(data.username);
+      if (existing && existing.id !== id) {
+        throw new ConflictError(`Le pseudo "${data.username}" est déjà utilisé`);
       }
-      
+    }
+
+    // Si un nouveau mot de passe est fourni, on le valide et on le hache
+    if (data?.password) {      
       updatePayload.password = await bcrypt.hash(data.password, 10);
     }
 
@@ -113,6 +105,7 @@ export class UserService {
     if (!updated) {
       throw new NotFoundError(`Utilisateur ${id} introuvable`);
     }
+
     return updated;
   }
 

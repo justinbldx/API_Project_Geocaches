@@ -1,22 +1,22 @@
 export interface Visit {
-    id: number;
-    id_user: number;
-    id_geocache: number;
-    date_heure: Date;
-    commentaire: string;
-    cache_trouve: boolean;
+    cache_id: number;
+    found: boolean;
+    comment?: string;
+    visited_at: Date;
+    photo_url?: string;
 }
 
-export interface CreateVisitDTO {
-    id_user: number;
-    id_geocache: number;
-    date_heure: Date;
-    commentaire: string;
-    cache_trouve: boolean;
-}
-
-export interface UpdateVisitDTO {
-    date_heure?: Date;
-    commentaire?: string;
-    cache_trouve?: boolean;
+export interface DetailedVisit extends Visit {
+    cache: {
+        id: number;
+        coordinates: {
+            latitude: number;
+            longitude: number;
+        }
+        type: string;
+        state: string;
+        description: string;
+        descriptionLibre: string;
+        descriptionTechnique: string;
+    }
 }

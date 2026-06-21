@@ -71,19 +71,25 @@ create table mydatabase.cache
             on delete cascade
 );
 
-create table mydatabase.visite
+CREATE TABLE mydatabase.visite
 (
-    id_utilisateur bigint                not null,
-    id_cache       bigint                not null,
-    date_heure     datetime              not null,
-    commentaire    varchar(255) null,
-    photo_url      varchar(255) null,
-    cache_trouve   tinyint(1) default 0 not null,
-    primary key (id_utilisateur, id_cache, date_heure),
-    constraint visite_cache_id_fk
-        foreign key (id_cache) references mydatabase.cache (id)
-            on delete cascade,
-    constraint visite_utilisateur_id_fk
-        foreign key (id_utilisateur) references mydatabase.utilisateur (id)
-            on delete cascade
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    id_utilisateur  BIGINT NOT NULL,
+    id_cache        BIGINT NOT NULL,
+
+    date_heure      DATETIME NOT NULL,
+    commentaire     VARCHAR(255) NULL,
+    photo_url       VARCHAR(255) NULL,
+    cache_trouve    TINYINT(1) DEFAULT 0 NOT NULL,
+
+    CONSTRAINT visite_cache_id_fk
+        FOREIGN KEY (id_cache)
+        REFERENCES mydatabase.cache (id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT visite_utilisateur_id_fk
+        FOREIGN KEY (id_utilisateur)
+        REFERENCES mydatabase.utilisateur (id)
+        ON DELETE CASCADE
 );

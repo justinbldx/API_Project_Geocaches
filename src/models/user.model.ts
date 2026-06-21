@@ -8,20 +8,6 @@ export interface User {
     role: UserRole;
 }
 
-// Reçu lors de la création (POST /users)
-export interface CreateUserDTO {
-    username: string;
-    password: string; 
-    role?: UserRole;
-}
-
-// Reçu lors de la modification (PUT /users/{id})
-export interface UpdateUserDTO {
-    username?: string; // Corrigé (name -> username)
-    password?: string; // Ajouté car modifiable selon OpenAPI
-    role?: UserRole;   // Présent
-}
-
 // Utilisé pour le détail des réseaux d'un utilisateur
 export interface NetworkSummary {
     id: number;
