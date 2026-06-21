@@ -5,7 +5,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http ://localhost:3000/api/
+  - url: http://localhost:3000/api/
     description: Serveur de développement
 
 security:
@@ -219,10 +219,12 @@ components:
 
     CreateNetworkRequest:
       type: object
-      required: [name]
+      required: [name, owner_id]
       properties:
         name:
           type: string
+        owner_id:
+          type: integer
 
     UpdateNetworkRequest:
       type: object

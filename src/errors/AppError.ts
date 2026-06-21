@@ -33,3 +33,9 @@ export class ConflictError extends AppError {
     super(message, 409);
   }
 }
+// 403 - Droits insuffisants (Celle qui te manque !)
+export class ForbiddenError extends AppError {
+  constructor(message: string = 'Droits insuffisants') {
+    super(message, 403);
+  }
+}
