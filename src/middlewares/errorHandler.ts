@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { AppError } from '../errors/AppError';
+import { AppError, BadRequestError } from '../errors/AppError';
 
 /**
  * Doit être déclaré APRÈS toutes les routes dans app.ts.
@@ -24,10 +24,37 @@ export function errorHandler(
         return;
     }
 
+    // Handle SQL constraint errors (foreign key, unique constraints, etc.)
+    if (isSqlError(err)) {
+        const sqlErr = err as any;
+        if (sqlErr.errno === 1452) { // Foreign key constraint fails
+            const constraintMatch = sqlErr.sqlMessage?.match(/CONSTRAINT `([^`]+)`/);
+            const constraintName = constraintMatch?.[1] || 'unknown';
+            const message = `Contrainte d'intégrité violée : ${constraintName}. Vérifiez que les références existent.`;
+            res.status(400).json({
+                status: 'error',
+                message,
+            });
+            return;
+        }
+        if (sqlErr.errno === 1062) { // Duplicate key error
+            const message = 'Cette valeur existe déjà (violation de contrainte d\'unicité).';
+            res.status(400).json({
+                status: 'error',
+                message,
+            });
+            return;
+        }
+    }
+
     console.error(`[Erreur non gérée] ${req.method} ${req.originalUrl}`, err);
 
     res.status(500).json({
         status: 'error',
         message: 'Erreur interne du serveur',
     });
+}
+
+function isSqlError(err: Error): boolean {
+    return (err as any).errno !== undefined && (err as any).sqlMessage !== undefined;
 }
