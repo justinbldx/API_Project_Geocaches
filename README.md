@@ -18,6 +18,11 @@ Lancer le docker
 docker compose up -d
 ```
 
+Installer les dépendances
+```bash
+npm i
+```
+
 Compiler le projet et le lancer
 ```bash
 npm run build && npm run start
