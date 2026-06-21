@@ -145,6 +145,8 @@ components:
     VisitSummary:
       type: object
       properties:
+        id:
+          type: integer
         cache:
           $ref: '#/components/schemas/CacheSummary'
         found:
@@ -164,9 +166,13 @@ components:
           $ref: '#/components/schemas/UserSummary'
         found:
           type: boolean
+        id:
+          type: integer
         visited_at:
           type: string
           format: date-time
+        cache_id:
+          type: integer
         comment:
           type: string
         photo_url:
@@ -315,8 +321,6 @@ components:
           type: string
         message:
           type: string
-        status:
-          type: integer
 
   parameters:
     UserIdParam:
@@ -474,7 +478,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-    put:
+    patch:
       tags: [Utilisateurs]
       summary: Modifier un utilisateur
       parameters:
@@ -626,7 +630,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-    put:
+    patch:
       tags: [Réseaux]
       summary: Modifier un réseau
       parameters:
@@ -829,7 +833,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-    put:
+    patch:
       tags: [Caches]
       summary: Modifier un cache
       parameters:
@@ -918,7 +922,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VisitDetail'
+                $ref: '#/components/schemas/VisitSummaryWithoutCache'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':

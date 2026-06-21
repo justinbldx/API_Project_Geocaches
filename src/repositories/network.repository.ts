@@ -1,4 +1,10 @@
 import { pool } from '../config/database';
+import { CacheSummary } from '../models/cache.model';
+import { AddMemberDTO } from '../models/cache.schema';
+import { NetworkDetail, NetworkMemberAssignment } from '../models/network.model';
+import { CreateNetworkDTO, UpdateNetworkDTO } from '../models/network.schema';
+import { JWTUser } from '../types/types';
+import { sanitizeUser } from '../utils/sanitizeUser';
 
 export class NetworkRepository {
 
@@ -21,7 +27,7 @@ export class NetworkRepository {
   }
 
   // 🔹 GET BY ID
-  async getById(id: number) {
+  async getById(id: number): Promise<NetworkDetail | null> {
     const rows: any = await pool.query(`
       SELECT reseau.id, reseau.id_proprietaire, reseau.nom_reseau, utilisateur.pseudo, utilisateur.admin
       FROM reseau JOIN utilisateur ON reseau.id_proprietaire = utilisateur.id
@@ -29,9 +35,8 @@ export class NetworkRepository {
       `,
       [id]
     );
-    // Normalize result shape for different mysql libraries: some return [rows, fields], others return rows directly
-    const row = rows[0];
 
+    const row = rows[0];
     if (!row) return null;
 
     return {
@@ -45,72 +50,80 @@ export class NetworkRepository {
     };
   }
 
-  // 🔹 CREATE NETWORK
-  async create(data: any) {
-    const { name, owner_id } = data;
-
+  /**
+   * Création d'un réseau
+   * @param user L'utilisateur qui crée le réseau
+   * @param data Les données nécessaires pour créer le réseau
+   */
+  async create(user: JWTUser, data: CreateNetworkDTO): Promise<NetworkDetail> {
     const result: any = await pool.query(
       `
       INSERT INTO reseau (id_proprietaire, nom_reseau)
       VALUES (?, ?)
       `,
-      [owner_id, name]
+      [user.id, data.name]
     );
 
-    const ownerRows: any = await pool.query(
+    await pool.query(
       `
-      SELECT pseudo, admin
-      FROM utilisateur
-      WHERE id = ?
+      INSERT INTO affectation (id_utilisateur, id_reseau, date_affectation)
+      VALUES (?, ?, NOW())
       `,
-      [owner_id]
+      [user.id, result.insertId]
     );
-
-    const ownerInfo = ownerRows[0] || {};
 
     return {
       id: Number(result.insertId),
-      name,
-      owner: {
-        id: Number(owner_id),
-        role: ownerInfo.admin === 1 ? 'admin' : 'user',
-        username: ownerInfo.pseudo || null
-      }
+      name: data.name,
+      owner: sanitizeUser(user)
     };
   }
 
-  // 🔹 UPDATE NETWORK
-  async update(id: number, data: any) {
-    const { name, owner_id } = data;
+  /**
+   * Permet de mettre à jour un réseau
+   * @param id L'identifiant du réseau à mettre à jour
+   * @param data Les données à mettre à jour
+   * @returns 
+   */
+  async update(id: number, data: UpdateNetworkDTO): Promise<NetworkDetail | null> {
+    const { name } = data;
 
-    const result: any = await pool.query(
+    await pool.query(
       `
       UPDATE reseau
-      SET nom_reseau = ?, id_proprietaire = ?
+      SET nom_reseau = ?
       WHERE id = ?
       `,
-      [name, owner_id, id]
+      [name, id]
     );
 
-    const ownerRows: any = await pool.query(
+    const rows: any = await pool.query(
       `
-      SELECT pseudo, admin
-      FROM utilisateur
-      WHERE id = ?
+      SELECT
+        r.id,
+        r.nom_reseau,
+        u.id AS owner_id,
+        u.pseudo,
+        u.admin
+      FROM reseau r
+      JOIN utilisateur u
+        ON u.id = r.id_proprietaire
+      WHERE r.id = ?
       `,
-      [owner_id]
+      [id]
     );
 
-    const ownerInfo = ownerRows[0] || {};
+    const row = rows[0];
+    if (!row) return null;
 
     return {
-      id: Number(id),
-      name,
+      id: Number(row.id),
+      name: row.nom_reseau,
       owner: {
-        id: Number(owner_id),
-        role: ownerInfo.admin === 1 ? 'admin' : 'user',
-        username: ownerInfo.pseudo || null
-      }
+        id: Number(row.owner_id),
+        role: row.admin === 1 ? 'admin' : 'user',
+        username: row.pseudo,
+      },
     };
   }
 
@@ -167,8 +180,12 @@ export class NetworkRepository {
     }));
   }
 
-  // 🔹 ADD MEMBER
-  async addMember(id: number, data: any) {
+  /**
+   * Permet d'ajouter un membre à un réseau
+   * @param id L'identifiant du réseau
+   * @param data Les données nécessaires pour ajouter un membre 
+   */
+  async addMember(id: number, data: AddMemberDTO): Promise<NetworkMemberAssignment> {
     const { user_id } = data;
     await pool.query(
       `
@@ -179,7 +196,6 @@ export class NetworkRepository {
     );
 
     return {
-      "message": "Member added successfully",
       "network_id": id,
       "user_id": user_id
     };
@@ -196,14 +212,50 @@ export class NetworkRepository {
     );
 
     return {
-      "message": "Member removed successfully",
       "network_id": network_id,
       "user_id": member_id
     };
   }
 
-  // 🔹 GET CACHES
-  async getCaches(network_id: number, type_id?: number, state_id?: number) {
+  async isMember(networkId: number, userId: number): Promise<boolean> {
+    const rows: any = await pool.query(
+      `
+      SELECT EXISTS(
+        SELECT 1
+        FROM affectation
+        WHERE id_reseau = ?
+          AND id_utilisateur = ?
+      ) AS is_member
+      `,
+      [networkId, userId]
+    );
+
+    return Boolean(rows[0]?.is_member);
+  }
+
+  async isOwner(networkId: number, userId: number): Promise<boolean> {
+    const rows: any = await pool.query(
+      `
+      SELECT EXISTS(
+        SELECT 1
+        FROM reseau
+        WHERE id = ?
+          AND id_proprietaire = ?
+      ) AS is_owner
+      `,
+      [networkId, userId]
+    ); 
+
+    return Boolean(rows[0]?.is_owner);
+  }
+
+  /**
+   * Permet de récupérer les caches d'un réseau
+   * @param network_id L'identifiant du réseau
+   * @param type_id L'identifiant du type de cache
+   * @param state_id L'identifiant de l'état du cache
+   */
+  async getCaches(network_id: number, type_id?: number, state_id?: number): Promise<CacheSummary[]> {
     let query = `
       SELECT 
         cache.id,

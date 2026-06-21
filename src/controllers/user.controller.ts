@@ -1,17 +1,6 @@
 import { Request, Response } from 'express';
-import { BadRequestError } from '../errors/AppError';
+import { BadRequestError, ForbiddenError } from '../errors/AppError';
 import { UserService } from '../services/user.service';
-
-/**
- * Interface étendue pour récupérer l'utilisateur injecté par le middleware d'authentification
- */
-interface AuthenticatedRequest extends Request {
-    user?: {
-        id: number;
-        role: 'user' | 'admin';
-        username: string;
-    };
-}
 
 /**
  * Le controller ne contient AUCUNE règle métier ni requête SQL.
@@ -27,34 +16,53 @@ export class UserController {
     };
 
     getById = async (req: Request, res: Response): Promise<void> => {
-        const id = parseId(req.params.id as string);
-        const user = await this.userService.getUserById(id);
-        // Conforme à l'OpenAPI : renvoie directement le détail de l'utilisateur (UserDetailWithNetworksDetail)
+        const user = await this.userService.getUserById(parseId(req.params.id as string));
         res.status(200).json(user);
     };
 
     create = async (req: Request, res: Response): Promise<void> => {
-        const user = await this.userService.createUser(req.body);
-        // Conforme à l'OpenAPI : renvoie directement le UserSummary de l'utilisateur créé
+        if (req.body.role === 'admin' && req.user?.role !== 'admin') {
+            throw new ForbiddenError("Seul un administrateur peut créer un utilisateur avec le rôle 'admin'");
+        }
+
+        const user = await this.userService.register(req.body);
         res.status(201).json(user);
     };
 
-    update = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    getUsersVisits = async (req: Request, res: Response): Promise<void> => {
         const id = parseId(req.params.id as string);
 
-        // On récupère l'utilisateur connecté grâce au middleware d'authentification
-        // Le "!" indique à TS qu'on est sûr qu'il existe (garanti par le middleware de route)
-        const currentUser = req.user!;
+        if (req.user!.role !== 'admin' && req.user!.id !== id) {
+            throw new ForbiddenError("Vous n'avez pas la permission de consulter les visites de cet utilisateur");
+        }
+
+        const visits = await this.userService.getUsersVisits(id, req.query.found === 'true' ? true : req.query.found === 'false' ? false : undefined);
+        res.status(200).json({ visits });
+    };
+
+    update = async (req: Request, res: Response): Promise<void> => {
+        const id = parseId(req.params.id as string);
+
+        if (req.user!.role !== 'admin' && req.user!.id !== id) {
+            throw new ForbiddenError("Vous n'avez pas la permission de modifier cet utilisateur");
+        }
+
+        if (req.body.role === 'admin' && req.user!.role !== 'admin') {
+            throw new ForbiddenError("Seul un administrateur peut attribuer le rôle 'admin'");
+        }
 
         const user = await this.userService.updateUser(id, req.body);
         res.status(200).json(user);
     };
 
-    delete = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    delete = async (req: Request, res: Response): Promise<void> => {
         const id = parseId(req.params.id as string);
 
+        if (req.user!.role !== 'admin' && req.user!.id !== id) {
+            throw new ForbiddenError("Vous n'avez pas la permission de supprimer cet utilisateur");
+        }
+
         await this.userService.deleteUser(id);
-        // Conforme à l'OpenAPI : renvoie un code 200 avec un message de confirmation
         res.status(200).json({ message: 'Utilisateur supprimé' });
     };
 }

@@ -1,5 +1,6 @@
 import { pool } from '../config/database';
-import { CacheDetail, CacheSummary, CreateCacheDTO, UpdateCacheDTO } from '../models/cache.model';
+import { CacheDetail, CacheSummary } from '../models/cache.model';
+import { CreateCacheDTO, UpdateCacheDTO } from '../models/cache.schema';
 
 function parseCoordinates(pointText: string | null): { latitude: number; longitude: number } {
     if (!pointText) {
