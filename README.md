@@ -1,29 +1,45 @@
 # API_Project_Geocaches
-Répertoire Git contenant les fichiers pour le projet de la matière "API Rest"
 
-### Lancement du projet
+Projet réalisé dans le cadre du module **API REST**.
 
-Cloner le projet GitHub
+Ce dépôt Git contient l'ensemble des fichiers nécessaires au développement et à l'exécution de l'API de gestion de géocaches.
+
+## Prérequis
+
+Avant de lancer le projet, assurez-vous d'avoir installé :
+
+* Docker et Docker Compose
+* Node.js v24
+* npm
+
+## Installation et lancement
+
+### 1. Cloner le dépôt GitHub
+
 ```bash
 git clone https://github.com/justinbldx/API_Project_Geocaches.git
 ```
 
-Se rendre dans le dossier du projet
+### 2. Accéder au répertoire du projet
+
 ```bash
-cd API_Project_Geocaches/
+cd API_Project_Geocaches
 ```
 
-Lancer le docker
+### 3. Démarrer les services Docker
+
 ```bash
 docker compose up -d
 ```
 
-Installer les dépendances
+### 4. Installer les dépendances
+
 ```bash
-npm i
+npm install
 ```
 
-Compiler le projet et le lancer
+### 5. Compiler et lancer l'application
+
 ```bash
 npm run build && npm run start
 ```
