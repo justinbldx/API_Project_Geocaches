@@ -2,6 +2,13 @@ import { NextFunction, Request, Response } from 'express';
 import { AppError } from '../errors/AppError';
 import { ErrorResponse } from '../types/types';
 
+/**
+ * Gère les erreurs et envoie une réponse appropriée au client.
+ * @param err Erreur à traiter.
+ * @param req Requête HTTP en cours.
+ * @param res Réponse HTTP.
+ * @param _next Middleware suivant, non utilisé.
+ */
 export function errorHandler(
     err: Error,
     req: Request,
@@ -19,6 +26,7 @@ export function errorHandler(
         return;
     }
 
+    // Gestion des erreurs lié à un mauvais JSON reçu
     if (isJsonParseError(err)) {
         const response: ErrorResponse = {
             error: "INVALID_JSON",
@@ -28,7 +36,7 @@ export function errorHandler(
         return;
     }
 
-    // SQL errors
+    // Erreurs SQL
     if (isSqlError(err)) {
         const sqlErr = err as any;
 
@@ -53,7 +61,7 @@ export function errorHandler(
         }
     }
 
-    // Unknown errors
+    // Erreurs inconnues
     console.error(`[Erreur non gérée] ${req.method} ${req.originalUrl}`, err);
 
     const response: ErrorResponse = {
@@ -64,10 +72,20 @@ export function errorHandler(
     res.status(500).json(response);
 }
 
+/**
+ * Vérifie si une erreur correspond à une erreur SQL MySQL.
+ * @param err Erreur à vérifier.
+ * @returns true si l'erreur est de type SQL, false sinon.
+ */
 function isSqlError(err: Error): boolean {
     return (err as any).errno !== undefined && (err as any).sqlMessage !== undefined;
 }
 
+/**
+ * Vérifie si une erreur correspond à un JSON mal formé dans le corps de la requête.
+ * @param err Erreur à vérifier.
+ * @returns true si l'erreur provient du parsing JSON, false sinon.
+ */
 function isJsonParseError(err: Error): boolean {
   return (
     err instanceof SyntaxError &&
